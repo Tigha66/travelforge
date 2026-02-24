@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - T R A V E L</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    .glass{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1)}
+  </style>
+</head>
+<body class="bg-[#0a0a0f] min-h-screen text-white flex items-center justify-center">
+  <div class="w-full max-w-md p-8">
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-robot text-3xl"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-white">T R A V E L</h1>
+      <p class="text-slate-400 mt-2">Smart Meeting Studio</p>
+    </div>
+    
+    <div class="glass rounded-2xl p-8">
+      <form id="loginForm" class="space-y-4">
+        <input type="email" id="email" placeholder="Email" required class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder-slate-500">
+        <input type="password" id="password" placeholder="Password" required class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder-slate-500">
+        <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl font-semibold">Sign In</button>
+      </form>
+      <p class="text-center text-slate-400 text-sm mt-4">Or <a href="index.html" class="text-indigo-400">continue free</a></p>
+    </div>
+    
+    <div class="mt-8">
+      <h3 class="text-center text-slate-400 mb-4">Choose your plan</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="font-bold">Creator</p>
+          <p class="text-2xl font-bold text-indigo-400">$9/mo</p>
+          <ul class="text-slate-400 text-xs mt-2 space-y-1">
+            <li>✓ All features</li>
+            <li>✓ 100 meetings/mo</li>
+          </ul>
+          <button id="subscribe-creator" class="w-full mt-3 py-2 bg-indigo-500/20 text-indigo-400 rounded-lg text-sm hover:bg-indigo-500/30 transition">Subscribe</button>
+        </div>
+        <div class="glass rounded-xl p-4 text-center border border-purple-500/50">
+          <p class="font-bold">Pro</p>
+          <p class="text-2xl font-bold text-purple-400">$29/mo</p>
+          <ul class="text-slate-400 text-xs mt-2 space-y-1">
+            <li>✓ Unlimited meetings</li>
+            <li>✓ Priority support</li>
+            <li>✓ Advanced analytics</li>
+          </ul>
+          <button id="subscribe-pro" class="w-full mt-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-sm hover:bg-purple-500/30 transition">Subscribe</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Your Stripe publishable key
+    const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY');
+    
+    // Login form
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userEmail', document.getElementById('email').value);
+      window.location.href = 'index.html';
+    });
+    
+    // Stripe checkout - Creator ($9)
+    document.getElementById('subscribe-creator').addEventListener('click', async function() {
+      this.textContent = 'Loading...';
+      this.disabled = true;
+      
+      try {
+        // In production, call your backend to create a checkout session
+        // For demo, we'll show how it works
+        const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer sk_test_YOUR_SECRET_KEY',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({
+            'mode': 'subscription',
+            'payment_method_types[]': 'card',
+            'line_items[0][price_data][currency]': 'usd',
+            'line_items[0][price_data][unit_amount]': '900',
+            'line_items[0][price_data][product_data][name]': 'T R A V E L Creator',
+            'line_items[0][price_data][product_data][description]': '$9/month - All features, 100 meetings/mo',
+            'line_items[0][quantity]': '1',
+            'success_url': window.location.origin + '/index.html?subscribed=true',
+            'cancel_url': window.location.href
+          })
+        });
+        
+        const session = await response.json();
+        
+        if (session.error) {
+          alert('Demo mode: In production, this would redirect to Stripe Checkout!\n\nCreator Plan: $9/month');
+          this.textContent = 'Subscribe';
+          this.disabled = false;
+        } else {
+          // Redirect to Stripe
+          const result = await stripe.redirectToCheckout({ sessionId: session.id });
+          if (result.error) alert(result.error.message);
+        }
+      } catch (err) {
+        alert('Demo mode: In production, this would redirect to Stripe Checkout!\n\nCreator Plan: $9/month');
+        this.textContent = 'Subscribe';
+        this.disabled = false;
+      }
+    });
+    
+    // Stripe checkout - Pro ($29)
+    document.getElementById('subscribe-pro').addEventListener('click', async function() {
+      this.textContent = 'Loading...';
+      this.disabled = true;
+      
+      try {
+        const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer sk_test_YOUR_SECRET_KEY',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({
+            'mode': 'subscription',
+            'payment_method_types[]': 'card',
+            'line_items[0][price_data][currency]': 'usd',
+            'line_items[0][price_data][unit_amount]': '2900',
+            'line_items[0][price_data][product_data][name]': 'T R A V E L Pro',
+            'line_items[0][price_data][product_data][description]': '$29/month - Unlimited meetings, priority support',
+            'line_items[0][quantity]': '1',
+            'success_url': window.location.origin + '/index.html?subscribed=true',
+            'cancel_url': window.location.href
+          })
+        });
+        
+        const session = await response.json();
+        
+        if (session.error) {
+          alert('Demo mode: In production, this would redirect to Stripe Checkout!\n\nPro Plan: $29/month\n\nTo enable real payments:\n1. Get Stripe keys from stripe.com\n2. Replace pk_test_XXX and sk_test_XXX with your keys');
+          this.textContent = 'Subscribe';
+          this.disabled = false;
+        } else {
+          const result = await stripe.redirectToCheckout({ sessionId: session.id });
+          if (result.error) alert(result.error.message);
+        }
+      } catch (err) {
+        alert('Demo mode: In production, this would redirect to Stripe Checkout!\n\nPro Plan: $29/month\n\nTo enable real payments:\n1. Get Stripe keys from stripe.com\n2. Replace pk_test_XXX and sk_test_XXX with your keys');
+        this.textContent = 'Subscribe';
+        this.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
